@@ -2,118 +2,193 @@
 //  CodeVerificationView.swift
 //  Cleveroo
 //
-//  Created by Maya Marzouki on 5/11/2025.
+//  Fixed Navigation Issue - 10/11/2025
 //
 
 import SwiftUI
 
 struct CodeVerificationView: View {
     let email: String
+    let onCodeVerified: (String, String) -> Void  // (email, code)
+
     @State private var code = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var navigateToResetPassword = false
     @State private var showAlert = false
     @State private var alertMessage = ""
-    
+    @State private var showValidationAlert = false
+    @State private var validationMessage = ""
+    @State private var isVerifying = false // Pour désactiver le bouton après le premier clic
+
     var body: some View {
         ZStack {
-            BubbleBackground()
-                .ignoresSafeArea()
-            
+            BubbleBackground().ignoresSafeArea()
+
             ScrollView {
                 VStack(spacing: 25) {
                     Image("Cleveroo")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 130, height: 130)
-                        .shadow(color: Color.white.opacity(0.8), radius: 20)
-                    
+                        .shadow(color: .white.opacity(0.8), radius: 20)
+
                     Text("Enter Verification Code")
                         .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
-                    
-                    Text("A verification code has been sent to \(email).")
-                        .font(.footnote)
+
+                    Text("Enter the 6-digit code sent to \(email)")
+                        .font(.subheadline)
                         .foregroundColor(.white.opacity(0.9))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 30)
-                    
-                    TextField("🔢 Verification Code", text: $code)
+
+                    TextField("Verification Code", text: $code)
                         .keyboardType(.numberPad)
                         .textFieldStyle(ChildFieldStyle())
                         .padding(.horizontal, 30)
-                    
+
                     if let error = errorMessage {
                         Text(error)
                             .foregroundColor(.red)
                             .font(.caption)
                     }
-                    
-                    Button(action: { verifyCode() }) {
+
+                    Button(action: verifyCode) {
                         Text(isLoading ? "Verifying..." : "Verify Code")
                             .fontWeight(.bold)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(LinearGradient(colors: [Color.purple, Color.pink.opacity(0.9)], startPoint: .leading, endPoint: .trailing))
+                            .background(LinearGradient(colors: isVerifying ? [.gray, .gray] : [.purple, .pink.opacity(0.9)],
+                                                       startPoint: .leading, endPoint: .trailing))
                             .foregroundColor(.white)
                             .clipShape(Capsule())
                             .shadow(radius: 6)
+                            .opacity(isVerifying ? 0.6 : 1.0)
                     }
                     .padding(.horizontal, 30)
-                    
-                    Button(action: { resendCode() }) {
-                        Text("Didn't receive the code? Resend")
-                            .foregroundColor(.yellow)
-                            .font(.footnote)
-                            .padding(.top, 10)
+                    .disabled(isLoading || isVerifying)
+
+                    Button("Resend Code") {
+                        resendCode()
                     }
-                    
-                    NavigationLink("", isActive: $navigateToResetPassword) {
-                        ResetPasswordView(email: email)
-                    }
+                    .foregroundColor(.yellow)
+                    .font(.footnote)
+                    .padding(.top, 10)
                 }
                 .padding(.vertical, 50)
             }
         }
         .alert(alertMessage, isPresented: $showAlert) {
-            Button("OK", role: .cancel) {}
+            Button("OK") {}
         }
+        .alert("Validation Error", isPresented: $showValidationAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(validationMessage)
+        }
+        .navigationTitle("Verify Code")
+        .navigationBarTitleDisplayMode(.inline)
     }
-    
-    func verifyCode() {
-        guard !code.isEmpty else {
-            errorMessage = "Please enter the verification code."
+
+    private func verifyCode() {
+        let cleanedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Validation du code
+        guard !cleanedCode.isEmpty else {
+            validationMessage = "Please enter the verification code"
+            showValidationAlert = true
             return
         }
+        
+        guard cleanedCode.count == 6 else {
+            validationMessage = "Verification code must be 6 digits"
+            showValidationAlert = true
+            return
+        }
+        
+        guard Int(cleanedCode) != nil else {
+            validationMessage = "Please enter a valid numeric code"
+            showValidationAlert = true
+            return
+        }
+
         isLoading = true
         errorMessage = nil
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            isLoading = false
-            if code == "1234" { // Dummy code
-                navigateToResetPassword = true
-            } else {
-                errorMessage = "Invalid verification code."
+
+        let url = URL(string: "http://localhost:3000/auth/verify-reset-code")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "email": email,
+            "code": cleanedCode
+        ])
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                self.isLoading = false
+
+                // Vérifier le message de succès au lieu du status code
+                let msg = self.parseErrorMessage(from: data)
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                
+                print("🔍 Status Code: \(statusCode)")
+                print("📩 Response Message: \(msg ?? "nil")")
+                
+                // Status 201 ou 200 = succès, OU message contient "verified successfully"
+                if (200...299).contains(statusCode) || msg?.lowercased().contains("verified successfully") == true {
+                    print("✅ Code verified successfully")
+                    print("📧 Email: \(self.email)")
+                    print("🔢 Code: \(cleanedCode)")
+                    print("🚀 Calling onCodeVerified callback NOW")
+                    print("🎯 Executing navigation callback")
+                    
+                    // Désactiver le bouton définitivement après vérification réussie
+                    self.isVerifying = true
+                    
+                    // Appeler directement sans délai - nous sommes déjà sur le main thread
+                    self.onCodeVerified(self.email, cleanedCode)
+                    
+                    print("✨ Callback executed - navigation should happen now")
+                    
+                } else {
+                    self.errorMessage = msg ?? "Invalid or expired code."
+                    print("❌ Verification failed: \(msg ?? "Unknown")")
+                }
             }
-        }
+        }.resume()
     }
     
-    func resendCode() {
+    private func resendCode() {
+        let url = URL(string: "http://localhost:3000/auth/forgot-password")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["email": email])
+
         isLoading = true
-        errorMessage = nil
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            isLoading = false
-            alertMessage = "✅ A new verification code has been sent to \(email)"
-            showAlert = true
+        URLSession.shared.dataTask(with: request) { _, _, _ in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                self.alertMessage = "New code sent to \(self.email)"
+                self.showAlert = true
+            }
+        }.resume()
+    }
+
+    private func parseErrorMessage(from data: Data?) -> String? {
+        guard let data = data,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let message = json["message"] as? String else {
+            return nil
         }
+        return message
     }
 }
 
-
-
 #Preview {
-    CodeVerificationView(email: "test@example.com")
+    CodeVerificationView(email: "test@example.com") { email, code in
+        print("Preview: Code verified - \(email), \(code)")
+    }
 }
-

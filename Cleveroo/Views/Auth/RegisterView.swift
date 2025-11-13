@@ -8,20 +8,25 @@
 import SwiftUI
 
 struct RegisterView: View {
-    @StateObject private var viewModel = AuthViewModel()
+    @ObservedObject var viewModel: AuthViewModel
+    var onLoginSuccess: () -> Void
+
     @State private var showContent = false
     @State private var animateButton = false
     @State private var showStar = false
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    @State private var showValidationAlert = false
+    @State private var validationMessage = ""
+    @Environment(\.dismiss) var dismiss
 
     var body: some View {
         NavigationStack {
             ZStack {
-                BubbleBackground()
-                    .ignoresSafeArea()
-                
+                BubbleBackground().ignoresSafeArea()
+
                 ScrollView {
                     VStack(spacing: 25) {
-                        // 🌈 Logo + Title
                         VStack(spacing: 12) {
                             Image("Cleveroo")
                                 .resizable()
@@ -29,9 +34,8 @@ struct RegisterView: View {
                                 .frame(width: 130, height: 130)
                                 .shadow(color: Color.white.opacity(0.8), radius: 20)
                                 .scaleEffect(showContent ? 1.02 : 1.0)
-                                .animation(Animation.easeInOut(duration: 2.0)
-                                    .repeatForever(autoreverses: true), value: showContent)
-                            
+                                .animation(Animation.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: showContent)
+
                             Text("Welcome to Cleveroo, little explorer! 🌈")
                                 .font(.headline)
                                 .fontWeight(.semibold)
@@ -40,33 +44,11 @@ struct RegisterView: View {
                         }
                         .padding(.top, 30)
                         
-                        // 👨‍👩‍👧 Parent/Child Info
-                        VStack(spacing: 5) {
-                            Text("👨‍👩‍👧 This section is for parents and children")
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                            
-                            Text("Parents, fill in your info to help your little explorer start their Cleveroo journey!")
-                                .font(.footnote)
-                                .foregroundColor(.white.opacity(0.9))
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 8)
-                        }
-                        .padding()
-                        .background(Color.purple.opacity(0.25))
-                        .cornerRadius(20)
-                        .overlay(RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.white.opacity(0.5), lineWidth: 1.5))
-                        .shadow(color: .white.opacity(0.2), radius: 5, x: 0, y: 3)
-                        .padding(.horizontal, 30)
-                        
-                        // 🧒 Child Info Fields
+                        // MARK: Child Info Fields
                         VStack(spacing: 14) {
                             TextField("👶 Child Username", text: $viewModel.childUsername)
                                 .textFieldStyle(ChildFieldStyle())
                             
-                            // 🧍‍♂️ Harmonized Gender Selector
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("👧 Gender")
                                     .font(.footnote)
@@ -84,21 +66,17 @@ struct RegisterView: View {
                                 }
                             }
                             
-                            SecureField("🔑 Password", text: $viewModel.password)
-                                .textFieldStyle(ChildFieldStyle())
-                            SecureField("✅ Confirm Password", text: $viewModel.confirmPassword)
-                                .textFieldStyle(ChildFieldStyle())
+                            SecureFieldWithToggle(placeholder: "🔑 Password", text: $viewModel.password)
+                            SecureFieldWithToggle(placeholder: "✅ Confirm Password", text: $viewModel.confirmPassword)
                             TextField("🎂 Child Age", text: $viewModel.age)
                                 .keyboardType(.numberPad)
                                 .textFieldStyle(ChildFieldStyle())
                         }
                         .padding(.horizontal)
                         
-                        Divider()
-                            .background(Color.white.opacity(0.3))
-                            .padding(.horizontal, 50)
+                        Divider().background(Color.white.opacity(0.3)).padding(.horizontal, 50)
                         
-                        // 📧 Parent Info
+                        // MARK: Parent Info Fields
                         VStack(spacing: 14) {
                             TextField("📧 Parent Email", text: $viewModel.parentEmail)
                                 .keyboardType(.emailAddress)
@@ -109,79 +87,145 @@ struct RegisterView: View {
                         }
                         .padding(.horizontal)
                         
-                        // ⚠️ Error Message
+                        // MARK: Error
                         if let error = viewModel.errorMessage {
                             Text(error)
                                 .foregroundColor(.red)
                                 .font(.caption)
                         }
                         
-                        // ✨ Register Button
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) { animateButton = true }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                animateButton = false
-                                viewModel.register()
-                                if viewModel.isRegistered { withAnimation(.spring()) { showStar = true } }
-                            }
-                        }) {
-                            Text(viewModel.isLoading ? "Loading..." : "✨ Create Accounts ✨")
-                                .fontWeight(.bold)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(LinearGradient(colors: [Color.purple, Color.pink.opacity(0.9)],
-                                                           startPoint: .leading, endPoint: .trailing))
-                                .foregroundColor(.white)
-                                .clipShape(Capsule())
-                                .shadow(radius: 6)
-                                .scaleEffect(animateButton ? 1.05 : 1.0)
-                                .animation(.spring(response: 0.4, dampingFraction: 0.6), value: animateButton)
-                        }
-                        .padding(.horizontal)
-                        
-                        // 🌟 Success Animation
-                        if viewModel.isRegistered {
-                            ZStack {
-                                if showStar {
-                                    Image(systemName: "star.fill")
-                                        .font(.system(size: 50))
-                                        .foregroundColor(.yellow)
-                                        .rotationEffect(.degrees(showStar ? 360 : 0))
-                                        .scaleEffect(showStar ? 1.3 : 0.5)
-                                        .animation(.spring(response: 0.6, dampingFraction: 0.5)
-                                            .repeatCount(3, autoreverses: true), value: showStar)
-                                }
-                                Text("Yay! Accounts created 🎉")
-                                    .font(.subheadline)
-                                    .foregroundColor(.white)
-                                    .padding(.top, 80)
-                            }
-                        }
-                        
-                        // 🔹 Go to Login
-                        NavigationLink(destination: LoginView()) {
-                            HStack {
-                                Text("Already have an account?")
-                                    .foregroundColor(.white.opacity(0.8))
-                                Text("Log in")
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.yellow)
-                            }
-                            .font(.footnote)
-                        }
-                        .padding(.top, 10)
-                        
-                    }
-                    .padding(.bottom, 60)
-                }
-            }
-            .onAppear {
-                withAnimation(.easeInOut(duration: 1.0)) { showContent = true }
-            }
-        }
-    }
-}
+                        // MARK: Register Button
+                        Button(action: registerAction) {
+                                                    Text(viewModel.isLoading ? "Loading..." : "✨ Create Accounts ✨")
+                                                        .fontWeight(.bold)
+                                                        .frame(maxWidth: .infinity)
+                                                        .padding()
+                                                        .background(LinearGradient(colors: [Color.purple, Color.pink.opacity(0.9)],
+                                                                                   startPoint: .leading, endPoint: .trailing))
+                                                        .foregroundColor(.white)
+                                                        .clipShape(Capsule())
+                                                        .shadow(radius: 6)
+                                                        .scaleEffect(animateButton ? 1.05 : 1.0)
+                                                        .animation(.spring(response: 0.4, dampingFraction: 0.6), value: animateButton)
+                                                }
+                                                .padding(.horizontal)
 
+                                                if viewModel.isRegistered && showStar {
+                                                    VStack {
+                                                        Image(systemName: "star.fill")
+                                                            .font(.system(size: 50))
+                                                            .foregroundColor(.yellow)
+                                                            .rotationEffect(.degrees(showStar ? 360 : 0))
+                                                            .scaleEffect(showStar ? 1.3 : 0.5)
+                                                            .animation(.spring(response: 0.6, dampingFraction: 0.5).repeatCount(3, autoreverses: true), value: showStar)
+
+                                                        Text("Yay! Accounts created 🎉")
+                                                            .foregroundColor(.white)
+                                                            .font(.subheadline)
+                                                            .padding(.top, 20)
+                                                    }
+                                                }
+                                            }
+                                            .padding(.bottom, 60)
+                                        }
+                                    }
+                                    .onAppear { withAnimation(.easeInOut(duration: 1.0)) { showContent = true } }
+                                    .alert(alertMessage, isPresented: $showAlert) {
+                                        Button("OK") {
+                                            showAlert = false
+                                            if viewModel.isRegistered {
+                                                print("✅ Registration successful, redirecting to login")
+                                                dismiss() // Retour vers le LoginView
+                                            }
+                                        }
+                                    }
+                                    .alert("Validation Error", isPresented: $showValidationAlert) {
+                                        Button("OK", role: .cancel) {}
+                                    } message: {
+                                        Text(validationMessage)
+                                    }
+                                }
+                            }
+
+                            private func registerAction() {
+                                // Validation des champs
+                                guard !viewModel.childUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                                    validationMessage = "Please enter the child's username"
+                                    showValidationAlert = true
+                                    return
+                                }
+                                
+                                guard !viewModel.childGender.isEmpty else {
+                                    validationMessage = "Please select the child's gender"
+                                    showValidationAlert = true
+                                    return
+                                }
+                                
+                                guard !viewModel.password.isEmpty else {
+                                    validationMessage = "Please enter a password"
+                                    showValidationAlert = true
+                                    return
+                                }
+                                
+                                guard viewModel.password.count >= 6 else {
+                                    validationMessage = "Password must be at least 6 characters"
+                                    showValidationAlert = true
+                                    return
+                                }
+                                
+                                guard viewModel.password == viewModel.confirmPassword else {
+                                    validationMessage = "Passwords do not match"
+                                    showValidationAlert = true
+                                    return
+                                }
+                                
+                                guard !viewModel.age.isEmpty, let age = Int(viewModel.age), age > 0, age < 18 else {
+                                    validationMessage = "Please enter a valid age (1-17)"
+                                    showValidationAlert = true
+                                    return
+                                }
+                                
+                                guard !viewModel.parentEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                                    validationMessage = "Please enter the parent's email"
+                                    showValidationAlert = true
+                                    return
+                                }
+                                
+                                guard viewModel.parentEmail.contains("@") && viewModel.parentEmail.contains(".") else {
+                                    validationMessage = "Please enter a valid email address"
+                                    showValidationAlert = true
+                                    return
+                                }
+                                
+                                guard !viewModel.parentPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                                    validationMessage = "Please enter the parent's phone number"
+                                    showValidationAlert = true
+                                    return
+                                }
+                                
+                                guard viewModel.parentPhone.count >= 8 else {
+                                    validationMessage = "Please enter a valid phone number"
+                                    showValidationAlert = true
+                                    return
+                                }
+                                
+                                // Si validation OK, procéder à l'inscription
+                                animateButton = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                    animateButton = false
+                                    viewModel.register()
+
+                                    if viewModel.isRegistered {
+                                        alertMessage = "✅ Accounts successfully created!"
+                                        showStar = true
+                                        showAlert = true
+                                    }
+                                }
+                            }
+                        }
+
+                      
+// MARK: - GenderChoiceView
 struct GenderChoiceView: View {
     let label: String
     let isSelected: Bool
@@ -195,16 +239,14 @@ struct GenderChoiceView: View {
                 .padding(.vertical, 10)
                 .background(isSelected ? Color.white.opacity(0.25) : Color.white.opacity(0.15))
                 .cornerRadius(15)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 15)
-                        .stroke(isSelected ? Color.white.opacity(0.8) : Color.white.opacity(0.3), lineWidth: 1)
-                )
+                .overlay(RoundedRectangle(cornerRadius: 15)
+                    .stroke(isSelected ? Color.white.opacity(0.8) : Color.white.opacity(0.3), lineWidth: 1))
                 .foregroundColor(.white)
         }
     }
 }
 
+// MARK: - Preview
 #Preview {
-    RegisterView()
+    RegisterView(viewModel: AuthViewModel(), onLoginSuccess: {})
 }
-

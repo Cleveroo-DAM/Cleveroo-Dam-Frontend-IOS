@@ -6,3 +6,10 @@
 //
 
 import Foundation
+
+struct Child: Codable, Identifiable {
+    var id: String?
+    var username: String
+    var age: Int
+    var avatarURL: String?
+}

@@ -8,8 +8,37 @@
 import SwiftUI
 
 struct RootView: View {
+    @StateObject private var authViewModel = AuthViewModel()
+    @State private var isShowingSplash = true
+    @State private var isLoggedIn = false
+
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        ZStack {
+            if isShowingSplash {
+                SplashView {
+                    // Splash terminé
+                    withAnimation {
+                        isShowingSplash = false
+                    }
+                }
+            } else {
+                if isLoggedIn {
+                    MainTabView(viewModel: authViewModel, onLogout: handleLogout)
+                } else {
+                    RoleSelectionView()
+                }
+            }
+        }
+    }
+
+    // MARK: - Actions
+    private func handleLogin() {
+        isLoggedIn = true
+    }
+
+    private func handleLogout() {
+        authViewModel.logout()
+        isLoggedIn = false
     }
 }
 

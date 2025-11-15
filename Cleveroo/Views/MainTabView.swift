@@ -45,6 +45,7 @@ struct MainTabView: View {
                 BottomTabBar(selectedTab: $selectedTab)
             }
         }
+        .environmentObject(viewModel)  // ✅ Propager l'AuthViewModel à toutes les vues enfants
     }
 
     private func handleLogout() {

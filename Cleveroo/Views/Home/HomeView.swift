@@ -69,8 +69,12 @@ struct HomeView: View {
 
                     // Action Buttons
                     VStack(spacing: 20) {
-                        NavigationLink(destination: MiniGamesView()) {
+                        NavigationLink(destination: MiniGamesView().environmentObject(viewModel)) {
                             HomeActionButton(icon: "🎮", title: "Play Mini-Games", color1: .purple, color2: .pink)
+                        }
+                        
+                        NavigationLink(destination: GameHistoryView().environmentObject(viewModel)) {
+                            HomeActionButton(icon: "📊", title: "My Game History", color1: .orange, color2: .yellow)
                         }
 
                         NavigationLink(destination: AIReportView()) {

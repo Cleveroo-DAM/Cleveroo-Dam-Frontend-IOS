@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MiniGamesView: View {
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var selectedGame: Game?
     
     let games: [Game] = [
@@ -47,10 +48,15 @@ struct MiniGamesView: View {
             }
         }
         .sheet(item: $selectedGame) { game in
-            GameDetailView(game: game)
+            if game.title == "Memory Match" {
+                MemoryGameListView()
+                    .environmentObject(authViewModel)
+            } else {
+                GameDetailView(game: game)
+            }
+        }
         }
     }
-}
 
 // MARK: - Game Model
 struct Game: Identifiable {

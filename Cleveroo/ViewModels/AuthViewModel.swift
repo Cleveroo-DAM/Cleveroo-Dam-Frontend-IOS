@@ -37,6 +37,7 @@ class AuthViewModel: ObservableObject {
     @Published var isRegistered = false
     @Published var userProfile: [String: Any] = [:]
     @Published var isParent = false
+    @Published var currentChildId: String?
     
     // MARK: - API Base URL
     private let baseURL = "http://localhost:3000/auth"
@@ -57,15 +58,27 @@ class AuthViewModel: ObservableObject {
 
         sendRequest(urlString: endpoint, body: body) { [weak self] success, json, error in
             DispatchQueue.main.async {
-                self?.isLoading = false
+                guard let self = self else { return }
+                self.isLoading = false
+                
                 if success, let token = json?["access_token"] as? String {
+                    print("✅ Login successful, token saved")
                     UserDefaults.standard.set(token, forKey: "jwt")
-                    self?.isParent = isEmail
-                    self?.isLoggedIn = true
-                    if rememberMe { self?.saveIdentifier(identifier) }
-                    self?.fetchProfile()
+                    self.isParent = isEmail
+                    self.isLoggedIn = true
+                    if rememberMe { self.saveIdentifier(identifier) }
+                    
+                    // Appeler directement le bon endpoint selon le type
+                    if isEmail {
+                        print("📧 Fetching parent profile...")
+                        self.fetchParentProfile()
+                    } else {
+                        print("👶 Fetching child profile...")
+                        self.fetchChildProfile()
+                    }
                 } else {
-                    self?.errorMessage = error ?? "Login failed."
+                    print("❌ Login failed: \(error ?? "Unknown error")")
+                    self.errorMessage = error ?? "Login failed."
                 }
             }
         }
@@ -101,17 +114,16 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // MARK: - FETCH PROFILE
-    func fetchProfile() {
+    // MARK: - FETCH PARENT PROFILE
+    func fetchParentProfile() {
         guard let token = UserDefaults.standard.string(forKey: "jwt") else {
-            print("No token found.")
+            print("❌ No token found for parent profile")
             return
         }
 
-        let parentEndpoint = "\(baseURL)/profile/parent"
-        let childEndpoint = "\(baseURL)/profile/child"
+        let endpoint = "\(baseURL)/profile/parent"
         
-        sendRequest(urlString: parentEndpoint, method: "GET", token: token) { [weak self] success, json, error in
+        sendRequest(urlString: endpoint, method: "GET", token: token) { [weak self] success, json, error in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 
@@ -125,25 +137,71 @@ class AuthViewModel: ObservableObject {
                         self.childUsername = child["username"] as? String ?? ""
                         if let age = child["age"] as? Int { self.age = "\(age)" }
                         self.childGender = child["gender"] as? String ?? "Boy"
+                        self.currentChildId = child["_id"] as? String ?? child["id"] as? String
                     }
-                    print("Parent profile fetched")
+                    print("✅ Parent profile fetched successfully")
+                    print("   📧 Email: \(self.parentEmail)")
+                    print("   👶 Child: \(self.childUsername)")
                 } else {
-                    self.sendRequest(urlString: childEndpoint, method: "GET", token: token) { successChild, jsonChild, _ in
-                        DispatchQueue.main.async {
-                            if successChild, let jsonChild = jsonChild {
-                                self.isParent = false
-                                self.userProfile = jsonChild
-                                self.childUsername = jsonChild["username"] as? String ?? ""
-                                self.childGender = jsonChild["gender"] as? String ?? "Boy"
-                                if let age = jsonChild["age"] as? Int { self.age = "\(age)" }
-                                print("Child profile fetched")
-                            } else {
-                                self.errorMessage = error ?? "Failed to fetch profile."
-                            }
-                        }
-                    }
+                    print("❌ Failed to fetch parent profile: \(error ?? "Unknown error")")
+                    self.errorMessage = error ?? "Failed to fetch profile."
                 }
             }
+        }
+    }
+    
+    // MARK: - FETCH CHILD PROFILE
+    func fetchChildProfile() {
+        guard let token = UserDefaults.standard.string(forKey: "jwt") else {
+            print("❌ No token found for child profile")
+            return
+        }
+
+        let endpoint = "\(baseURL)/profile/child"
+        
+        sendRequest(urlString: endpoint, method: "GET", token: token) { [weak self] success, json, error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                if success, let json = json {
+                    print("🔍 Raw JSON received: \(json)")
+                    self.isParent = false
+                    self.userProfile = json
+                    
+                    // Essayer de récupérer l'ID de plusieurs façons
+                    if let id = json["_id"] as? String {
+                        self.currentChildId = id
+                        print("✅ Child ID found as '_id': \(id)")
+                    } else if let id = json["id"] as? String {
+                        self.currentChildId = id
+                        print("✅ Child ID found as 'id': \(id)")
+                    } else {
+                        print("❌ WARNING: Could not find child ID in response!")
+                        print("   Available keys: \(json.keys)")
+                    }
+                    
+                    self.childUsername = json["username"] as? String ?? ""
+                    self.childGender = json["gender"] as? String ?? "Boy"
+                    if let age = json["age"] as? Int { self.age = "\(age)" }
+                    
+                    print("✅ Child profile fetched successfully")
+                    print("   👶 Username: \(self.childUsername)")
+                    print("   🆔 ID: \(self.currentChildId ?? "N/A")")
+                    print("   🎂 Age: \(self.age)")
+                } else {
+                    print("❌ Failed to fetch child profile: \(error ?? "Unknown error")")
+                    self.errorMessage = error ?? "Failed to fetch profile."
+                }
+            }
+        }
+    }
+    
+    // MARK: - FETCH PROFILE (fallback pour compatibilité)
+    func fetchProfile() {
+        if isParent {
+            fetchParentProfile()
+        } else {
+            fetchChildProfile()
         }
     }
 
@@ -152,7 +210,7 @@ class AuthViewModel: ObservableObject {
         identifier = ""; password = ""; confirmPassword = ""
         age = ""; parentEmail = ""; parentPhone = ""
         childUsername = ""; childGender = "Boy"
-        userProfile = [:]; isLoggedIn = false; isParent = false
+        userProfile = [:]; isLoggedIn = false; isParent = false; currentChildId = nil
         UserDefaults.standard.removeObject(forKey: "jwt")
     }
     
@@ -229,8 +287,14 @@ class AuthViewModel: ObservableObject {
         completion: @escaping (Bool, [String: Any]?, String?) -> Void
     ) {
         guard let url = URL(string: urlString) else {
+            print("❌ Invalid URL: \(urlString)")
             completion(false, nil, "Invalid URL")
             return
+        }
+        
+        print("🌐 API Request: \(method) \(urlString)")
+        if let token = token {
+            print("🔑 Token: \(token.prefix(20))...")
         }
         
         var request = URLRequest(url: url)
@@ -241,25 +305,36 @@ class AuthViewModel: ObservableObject {
         }
         if let body = body {
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            print("📤 Body: \(body)")
         }
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
+                print("❌ Network error: \(error.localizedDescription)")
                 completion(false, nil, "Network error: \(error.localizedDescription)")
                 return
             }
             
             guard let httpResponse = response as? HTTPURLResponse else {
+                print("❌ Invalid response")
                 completion(false, nil, "Invalid response")
                 return
             }
             
+            print("📥 Response Status: \(httpResponse.statusCode)")
+            
             let json = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
             let message = json?["message"] as? String
             
+            if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                print("📥 Response Body: \(responseString)")
+            }
+            
             if (200...299).contains(httpResponse.statusCode) {
+                print("✅ Request successful")
                 completion(true, json, nil)
             } else {
+                print("❌ Request failed with status \(httpResponse.statusCode): \(message ?? "Unknown error")")
                 completion(false, nil, message ?? "Server error")
             }
         }.resume()

@@ -18,10 +18,18 @@ struct RoleSelectionView: View {
         NavigationStack {
             Group {
                 if isLoggedIn {
-                    MainTabView(viewModel: authViewModel, onLogout: {
-                        isLoggedIn = false
-                        authViewModel.logout()
-                    })
+                    // Show different views based on role
+                    if selectedRole == .parent {
+                        ParentDashboardView(viewModel: authViewModel, onLogout: {
+                            isLoggedIn = false
+                            authViewModel.logout()
+                        })
+                    } else {
+                        MainTabView(viewModel: authViewModel, onLogout: {
+                            isLoggedIn = false
+                            authViewModel.logout()
+                        })
+                    }
                 } else if showLoginView {
                     if selectedRole == .child {
                         ChildLoginView(onLoginSuccess: {

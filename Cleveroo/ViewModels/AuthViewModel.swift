@@ -38,9 +38,11 @@ class AuthViewModel: ObservableObject {
     @Published var userProfile: [String: Any] = [:]
     @Published var isParent = false
     @Published var currentChildId: String?
+    @Published var childrenList: [[String: Any]] = []
     
     // MARK: - API Base URL
     private let baseURL = "http://localhost:3000/auth"
+    private let parentBaseURL = "http://localhost:3000/parent"
     
     // MARK: - LOGIN
     func login(identifier: String, rememberMe: Bool = false) {
@@ -84,7 +86,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // MARK: - REGISTER
+    // MARK: - REGISTER (old - creates parent + child together)
     func register() {
         guard !childUsername.isEmpty else { setError("Please enter a child username."); return }
         guard let ageInt = Int(age), ageInt > 0 else { setError("Please enter a valid age."); return }
@@ -109,6 +111,119 @@ class AuthViewModel: ObservableObject {
                     self?.isRegistered = true
                 } else {
                     self?.errorMessage = error ?? "Registration failed."
+                }
+            }
+        }
+    }
+    
+    // MARK: - REGISTER PARENT ONLY (new backend logic)
+    func registerParent(email: String, phone: String, password: String, confirmPassword: String, completion: @escaping (Bool, String?) -> Void) {
+        guard !email.isEmpty else {
+            completion(false, "Please enter an email.")
+            return
+        }
+        guard !phone.isEmpty else {
+            completion(false, "Please enter a phone number.")
+            return
+        }
+        guard !password.isEmpty, password == confirmPassword else {
+            completion(false, "Passwords do not match.")
+            return
+        }
+
+        isLoading = true
+        let body: [String: Any] = [
+            "email": email,
+            "phone": phone,
+            "password": password,
+            "confirmPassword": confirmPassword
+        ]
+
+        sendRequest(urlString: "\(baseURL)/register", body: body) { [weak self] success, _, error in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                if success {
+                    print("✅ Parent registered successfully")
+                    self?.isRegistered = true
+                    completion(true, nil)
+                } else {
+                    print("❌ Parent registration failed: \(error ?? "Unknown error")")
+                    completion(false, error ?? "Registration failed.")
+                }
+            }
+        }
+    }
+    
+    // MARK: - ADD CHILD (protected by JWT)
+    func addChild(username: String, age: Int, gender: String, completion: @escaping (Bool, String?) -> Void) {
+        guard let token = UserDefaults.standard.string(forKey: "jwt") else {
+            print("❌ No token found for adding child")
+            completion(false, "Not authenticated. Please login first.")
+            return
+        }
+        
+        guard !username.isEmpty else {
+            completion(false, "Please enter a username.")
+            return
+        }
+        
+        guard age > 0 else {
+            completion(false, "Please enter a valid age.")
+            return
+        }
+
+        isLoading = true
+        let body: [String: Any] = [
+            "username": username,
+            "age": age,
+            "gender": gender
+        ]
+
+        let endpoint = "\(parentBaseURL)/children"
+        
+        sendRequest(urlString: endpoint, method: "POST", body: body, token: token) { [weak self] success, json, error in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                if success {
+                    print("✅ Child added successfully")
+                    completion(true, nil)
+                } else {
+                    print("❌ Failed to add child: \(error ?? "Unknown error")")
+                    completion(false, error ?? "Failed to add child.")
+                }
+            }
+        }
+    }
+    
+    // MARK: - FETCH CHILDREN (protected by JWT)
+    func fetchChildren() {
+        guard let token = UserDefaults.standard.string(forKey: "jwt") else {
+            print("❌ No token found for fetching children")
+            return
+        }
+
+        let endpoint = "\(parentBaseURL)/children"
+        
+        sendRequest(urlString: endpoint, method: "GET", token: token) { [weak self] success, json, error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                if success, let json = json {
+                    // Backend returns an array of children
+                    if let children = json["children"] as? [[String: Any]] {
+                        self.childrenList = children
+                        print("✅ Fetched \(children.count) children")
+                    } else if let children = json as? [[String: Any]] {
+                        // In case the response is directly an array
+                        self.childrenList = children
+                        print("✅ Fetched \(children.count) children")
+                    } else {
+                        self.childrenList = []
+                        print("⚠️ No children found in response")
+                    }
+                } else {
+                    print("❌ Failed to fetch children: \(error ?? "Unknown error")")
+                    self.errorMessage = error ?? "Failed to fetch children."
                 }
             }
         }

@@ -97,7 +97,7 @@ struct ParentLoginView: View {
                                 .foregroundColor(.white.opacity(0.8))
                                 .font(.footnote)
 
-                            NavigationLink(destination: RegisterView(viewModel: viewModel, onLoginSuccess: onLoginSuccess)) {
+                            NavigationLink(destination: RegisterParentView(viewModel: viewModel)) {
                                 Text("Register")
                                     .fontWeight(.bold)
                                     .foregroundColor(.yellow)

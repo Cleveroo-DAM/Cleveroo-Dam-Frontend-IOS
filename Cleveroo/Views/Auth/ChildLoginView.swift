@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct ChildLoginView: View {
-    @StateObject private var viewModel = AuthViewModel()
-    var onLoginSuccess: () -> Void
+    @ObservedObject var viewModel: AuthViewModel
 
     @State private var username = ""
     @State private var animateButton = false
@@ -72,7 +71,9 @@ struct ChildLoginView: View {
                         .disabled(viewModel.isLoading)
 
                         // Back Button
-                        NavigationLink(destination: RoleSelectionView()) {
+                        Button(action: {
+                            // Go back will be handled by NavigationStack
+                        }) {
                             Text("← Back to Role Selection")
                                 .font(.footnote)
                                 .foregroundColor(.yellow)
@@ -125,15 +126,11 @@ struct ChildLoginView: View {
             viewModel.identifier = username
             viewModel.login(identifier: username, rememberMe: false)
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                if viewModel.isLoggedIn {
-                    onLoginSuccess()
-                }
-            }
+            // Navigation handled by RootView observing viewModel.isLoggedIn
         }
     }
 }
 
 #Preview {
-    ChildLoginView(onLoginSuccess: {})
+    ChildLoginView(viewModel: AuthViewModel())
 }

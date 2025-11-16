@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct ParentLoginView: View {
-    @StateObject private var viewModel = AuthViewModel()
-    var onLoginSuccess: () -> Void
+    @ObservedObject var viewModel: AuthViewModel
 
     @State private var email = ""
     @State private var animateButton = false
@@ -105,13 +104,8 @@ struct ParentLoginView: View {
                             }
                         }
                         
-                        // Back Button
-                        NavigationLink(destination: RoleSelectionView()) {
-                            Text("← Back to Role Selection")
-                                .font(.footnote)
-                                .foregroundColor(.yellow)
-                        }
-                        .padding(.top, 10)
+                        // Back Button (navigation handled by NavigationStack)
+                        
                     }
                     .padding(.horizontal, 30)
                     .opacity(showContent ? 1 : 0)
@@ -170,15 +164,11 @@ struct ParentLoginView: View {
             viewModel.identifier = email
             viewModel.login(identifier: email, rememberMe: rememberMe)
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                if viewModel.isLoggedIn {
-                    onLoginSuccess()
-                }
-            }
+            // Navigation handled by RootView observing viewModel.isLoggedIn
         }
     }
 }
 
 #Preview {
-    ParentLoginView(onLoginSuccess: {})
+    ParentLoginView(viewModel: AuthViewModel())
 }

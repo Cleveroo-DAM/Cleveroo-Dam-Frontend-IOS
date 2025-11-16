@@ -60,10 +60,12 @@ struct ParentDashboardView: View {
                             VStack(spacing: 15) {
                                 ForEach(viewModel.childrenList.indices, id: \.self) { index in
                                     let child = viewModel.childrenList[index]
-                                    ChildCardView(child: child)
-                                        .opacity(showContent ? 1 : 0)
-                                        .offset(y: showContent ? 0 : 20)
-                                        .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.1), value: showContent)
+                                    NavigationLink(destination: ChildDetailView(child: child)) {
+                                        ChildCardView(child: child)
+                                    }
+                                    .opacity(showContent ? 1 : 0)
+                                    .offset(y: showContent ? 0 : 20)
+                                    .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.1), value: showContent)
                                 }
                             }
                             .padding(.horizontal)
@@ -103,19 +105,6 @@ struct ParentDashboardView: View {
             }
             .navigationBarHidden(false)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        onLogout()
-                    }) {
-                        HStack {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                            Text("Logout")
-                        }
-                        .foregroundColor(.white)
-                    }
-                }
-            }
             .onAppear {
                 viewModel.fetchChildren()
                 withAnimation(.easeInOut(duration: 0.6)) {

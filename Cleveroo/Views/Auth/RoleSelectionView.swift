@@ -8,37 +8,19 @@
 import SwiftUI
 
 struct RoleSelectionView: View {
-    @StateObject private var authViewModel = AuthViewModel()
+    @ObservedObject var authViewModel: AuthViewModel
     @State private var showContent = false
     @State private var selectedRole: AuthViewModel.UserRole?
     @State private var showLoginView = false
-    @State private var isLoggedIn = false
     
     var body: some View {
         NavigationStack {
             Group {
-                if isLoggedIn {
-                    // Show different views based on role
-                    if selectedRole == .parent {
-                        ParentDashboardView(viewModel: authViewModel, onLogout: {
-                            isLoggedIn = false
-                            authViewModel.logout()
-                        })
-                    } else {
-                        MainTabView(viewModel: authViewModel, onLogout: {
-                            isLoggedIn = false
-                            authViewModel.logout()
-                        })
-                    }
-                } else if showLoginView {
+                if showLoginView {
                     if selectedRole == .child {
-                        ChildLoginView(onLoginSuccess: {
-                            isLoggedIn = true
-                        })
+                        ChildLoginView(viewModel: authViewModel)
                     } else if selectedRole == .parent {
-                        ParentLoginView(onLoginSuccess: {
-                            isLoggedIn = true
-                        })
+                        ParentLoginView(viewModel: authViewModel)
                     }
                 } else {
                     roleSelectionContent
@@ -184,5 +166,5 @@ struct RoleCard: View {
 }
 
 #Preview {
-    RoleSelectionView()
+    RoleSelectionView(authViewModel: AuthViewModel())
 }

@@ -336,7 +336,7 @@ class AuthViewModel: ObservableObject {
             return
         }
         
-        let endpoint = isParent ? "\(baseURL)/profile/parent" : "\(baseURL)/profile/child"
+        let endpoint = isParent ? "\(baseURL)/profile/parent/updateProfile" : "\(baseURL)/profile/child"
         var body: [String: Any] = [:]
         
         if isParent {
@@ -344,7 +344,6 @@ class AuthViewModel: ObservableObject {
             body["phone"] = parentPhone
         } else {
             body["username"] = childUsername
-            body["gender"] = childGender
             body["age"] = Int(age) ?? 0
         }
         

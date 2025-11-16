@@ -10,7 +10,6 @@ import SwiftUI
 struct RootView: View {
     @StateObject private var authViewModel = AuthViewModel()
     @State private var isShowingSplash = true
-    @State private var isLoggedIn = false
 
     var body: some View {
         ZStack {
@@ -22,23 +21,22 @@ struct RootView: View {
                     }
                 }
             } else {
-                if isLoggedIn {
-                    MainTabView(viewModel: authViewModel, onLogout: handleLogout)
+                if authViewModel.isLoggedIn {
+                    if authViewModel.isParent {
+                        ParentTabView(viewModel: authViewModel, onLogout: handleLogout)
+                    } else {
+                        MainTabView(viewModel: authViewModel, onLogout: handleLogout)
+                    }
                 } else {
-                    RoleSelectionView()
+                    RoleSelectionView(authViewModel: authViewModel)
                 }
             }
         }
     }
 
     // MARK: - Actions
-    private func handleLogin() {
-        isLoggedIn = true
-    }
-
     private func handleLogout() {
         authViewModel.logout()
-        isLoggedIn = false
     }
 }
 

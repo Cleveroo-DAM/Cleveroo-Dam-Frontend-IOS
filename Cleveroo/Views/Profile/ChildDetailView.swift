@@ -9,7 +9,9 @@ import SwiftUI
 
 struct ChildDetailView: View {
     let child: [String: Any]
+    @StateObject private var activityVM = ActivityViewModel()
     @State private var showContent = false
+    @State private var showAssignActivity = false
     
     var body: some View {
         ZStack {
@@ -93,6 +95,87 @@ struct ChildDetailView: View {
                     .opacity(showContent ? 1 : 0)
                     .offset(y: showContent ? 0 : 20)
                     .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.1), value: showContent)
+                    
+                    // Activities Section
+                    VStack(alignment: .leading, spacing: 15) {
+                        HStack {
+                            Image(systemName: "gamecontroller.fill")
+                                .foregroundColor(.orange)
+                            Text("Assigned Activities")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                showAssignActivity = true
+                            }) {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text("Assign")
+                                }
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color.purple, Color.pink],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(20)
+                            }
+                        }
+                        
+                        Divider()
+                            .background(Color.white.opacity(0.3))
+                        
+                        if activityVM.isLoading {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                Spacer()
+                            }
+                            .padding()
+                        } else if activityVM.childAssignments.isEmpty {
+                            VStack(spacing: 10) {
+                                Image(systemName: "tray")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.white.opacity(0.5))
+                                Text("No activities assigned yet")
+                                    .font(.subheadline)
+                                    .foregroundColor(.white.opacity(0.7))
+                                Text("Tap 'Assign' to add an activity")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                        } else {
+                            VStack(spacing: 12) {
+                                ForEach(activityVM.childAssignments) { assignment in
+                                    ActivityAssignmentCard(assignment: assignment)
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.white.opacity(0.15))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+                    .padding(.horizontal)
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : 20)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.15), value: showContent)
                     
                     // Progress Overview
                     VStack(alignment: .leading, spacing: 15) {
@@ -201,6 +284,16 @@ struct ChildDetailView: View {
         .onAppear {
             withAnimation(.easeInOut(duration: 0.6)) {
                 showContent = true
+            }
+            if let childId = child["_id"] as? String ?? child["id"] as? String {
+                activityVM.fetchActivitiesForChild(childId: childId)
+            }
+        }
+        .sheet(isPresented: $showAssignActivity) {
+            if let childId = child["_id"] as? String ?? child["id"] as? String {
+                AssignActivityView(childId: childId, activityVM: activityVM) {
+                    activityVM.fetchActivitiesForChild(childId: childId)
+                }
             }
         }
     }
@@ -353,6 +446,161 @@ struct QuickStatCard: View {
             RoundedRectangle(cornerRadius: 15)
                 .fill(Color.white.opacity(0.1))
         )
+    }
+}
+
+// MARK: - Activity Assignment Card
+struct ActivityAssignmentCard: View {
+    let assignment: ActivityAssignment
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Icon
+            Image(systemName: activityIcon)
+                .font(.system(size: 28))
+                .foregroundColor(domainColor)
+                .frame(width: 50, height: 50)
+                .background(
+                    Circle()
+                        .fill(domainColor.opacity(0.2))
+                )
+            
+            VStack(alignment: .leading, spacing: 6) {
+                Text(assignment.activityId.title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                if let description = assignment.activityId.description {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                        .lineLimit(2)
+                }
+                
+                HStack(spacing: 10) {
+                    StatusBadge(status: assignment.status)
+                    
+                    if let dueDate = assignment.dueDate {
+                        Label(formatDueDate(dueDate), systemImage: "calendar")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                    
+                    if let score = assignment.score {
+                        Label("\(score)%", systemImage: "star.fill")
+                            .font(.caption2)
+                            .foregroundColor(.yellow)
+                    }
+                }
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 15)
+                .fill(Color.white.opacity(0.1))
+        )
+    }
+    
+    private var activityIcon: String {
+        switch assignment.activityId.type.lowercased() {
+        case "external_game":
+            return "gamecontroller.fill"
+        case "quiz":
+            return "questionmark.circle.fill"
+        default:
+            return "book.fill"
+        }
+    }
+    
+    private var domainColor: Color {
+        switch assignment.activityId.domain.lowercased() {
+        case "math":
+            return .blue
+        case "logic":
+            return .purple
+        case "literature":
+            return .orange
+        case "sport":
+            return .green
+        case "language":
+            return .pink
+        case "creativity":
+            return .yellow
+        default:
+            return .cyan
+        }
+    }
+    
+    private func formatDueDate(_ dateString: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        if let date = formatter.date(from: dateString) {
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateStyle = .short
+            return displayFormatter.string(from: date)
+        }
+        return dateString
+    }
+}
+
+// MARK: - Status Badge
+struct StatusBadge: View {
+    let status: String
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(statusEmoji)
+            Text(statusText)
+        }
+        .font(.caption2)
+        .fontWeight(.semibold)
+        .foregroundColor(.white)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(statusColor)
+        .cornerRadius(8)
+    }
+    
+    private var statusEmoji: String {
+        switch status.lowercased() {
+        case "assigned":
+            return "📋"
+        case "in_progress":
+            return "🎮"
+        case "completed":
+            return "✅"
+        default:
+            return "📋"
+        }
+    }
+    
+    private var statusText: String {
+        switch status.lowercased() {
+        case "assigned":
+            return "To Do"
+        case "in_progress":
+            return "In Progress"
+        case "completed":
+            return "Completed"
+        default:
+            return status.capitalized
+        }
+    }
+    
+    private var statusColor: Color {
+        switch status.lowercased() {
+        case "assigned":
+            return .orange
+        case "in_progress":
+            return .blue
+        case "completed":
+            return .green
+        default:
+            return .gray
+        }
     }
 }
 

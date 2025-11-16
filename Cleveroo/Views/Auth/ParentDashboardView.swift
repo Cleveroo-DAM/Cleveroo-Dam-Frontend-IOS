@@ -63,6 +63,7 @@ struct ParentDashboardView: View {
                                     NavigationLink(destination: ChildDetailView(child: child)) {
                                         ChildCardView(child: child)
                                     }
+                                    .buttonStyle(PlainButtonStyle())
                                     .opacity(showContent ? 1 : 0)
                                     .offset(y: showContent ? 0 : 20)
                                     .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.1), value: showContent)

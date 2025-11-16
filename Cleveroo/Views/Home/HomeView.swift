@@ -69,6 +69,10 @@ struct HomeView: View {
 
                     // Action Buttons
                     VStack(spacing: 20) {
+                        NavigationLink(destination: ChildDashboardView(authVM: viewModel)) {
+                            HomeActionButton(icon: "🎯", title: "My Activities", color1: .green, color2: .cyan)
+                        }
+                        
                         NavigationLink(destination: MiniGamesView().environmentObject(viewModel)) {
                             HomeActionButton(icon: "🎮", title: "Play Mini-Games", color1: .purple, color2: .pink)
                         }

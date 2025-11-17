@@ -94,13 +94,15 @@ struct ForgotPasswordView: View {
 
     private func sendCode() {
         // Validation de l'email
-        guard !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let cleanedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        
+        guard !cleanedEmail.isEmpty else {
             validationMessage = "Please enter your email address"
             showValidationAlert = true
             return
         }
-        
-        guard email.contains("@") && email.contains(".") else {
+
+        guard cleanedEmail.contains("@") && cleanedEmail.contains(".") else {
             validationMessage = "Please enter a valid email address"
             showValidationAlert = true
             return
@@ -109,17 +111,44 @@ struct ForgotPasswordView: View {
         isLoading = true
         errorMessage = nil
 
-        viewModel.sendForgotPasswordCode(email: email) { success, error in
+        print("📧 Sending forgot password code for: \(cleanedEmail)")
+        
+        let url = URL(string: "http://localhost:3000/auth/forgot-password")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["email": cleanedEmail])
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isLoading = false
-                if success {
-                    self.alertMessage = "Check your email at \(self.email) for the 6-digit code."
-                    self.onCodeSent(self.email)
+                
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                let responseData = data.flatMap { String(data: $0, encoding: .utf8) } ?? "No response body"
+                
+                print("🔍 Status Code: \(statusCode)")
+                print("📥 Response: \(responseData)")
+                
+                if (200...299).contains(statusCode) {
+                    self.alertMessage = "Check your email at \(cleanedEmail) for the 6-digit code."
+                    print("✅ Code sent successfully to: \(cleanedEmail)")
+                    self.onCodeSent(cleanedEmail)
                 } else {
-                    self.errorMessage = error ?? "Failed to send code. Check your email."
+                    let msg = self.parseErrorMessage(from: data)
+                    self.errorMessage = msg ?? "Failed to send code. Please check your email address."
+                    print("❌ Failed to send code: \(msg ?? "Unknown error")")
                 }
             }
+        }.resume()
+    }
+    
+    private func parseErrorMessage(from data: Data?) -> String? {
+        guard let data = data,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let message = json["message"] as? String else {
+            return nil
         }
+        return message
     }
 }
 

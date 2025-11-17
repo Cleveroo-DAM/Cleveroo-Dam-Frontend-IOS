@@ -10,22 +10,18 @@ import SwiftUI
 struct RoleSelectionView: View {
     @ObservedObject var authViewModel: AuthViewModel
     @State private var showContent = false
-    @State private var selectedRole: AuthViewModel.UserRole?
-    @State private var showLoginView = false
+    @State private var navigationPath: [AuthViewModel.UserRole] = []
     
     var body: some View {
-        NavigationStack {
-            Group {
-                if showLoginView {
-                    if selectedRole == .child {
+        NavigationStack(path: $navigationPath) {
+            roleSelectionContent
+                .navigationDestination(for: AuthViewModel.UserRole.self) { role in
+                    if role == .child {
                         ChildLoginView(viewModel: authViewModel)
-                    } else if selectedRole == .parent {
+                    } else if role == .parent {
                         ParentLoginView(viewModel: authViewModel)
                     }
-                } else {
-                    roleSelectionContent
                 }
-            }
         }
     }
     
@@ -61,19 +57,13 @@ struct RoleSelectionView: View {
                     // Boutons de sélection
                     VStack(spacing: 25) {
                         // Bouton Enfant
-                        Button(action: {
-                            print("🔵 Child button clicked!")
-                            selectedRole = .child
-                            print("🔵 selectedRole set to: \(String(describing: selectedRole))")
-                            showLoginView = true
-                            print("🔵 showLoginView set to: \(showLoginView)")
-                        }) {
+                        NavigationLink(value: AuthViewModel.UserRole.child) {
                             RoleCard(
                                 icon: "👶",
                                 title: "I'm a Child",
                                 subtitle: "Play and Learn!",
                                 colors: [.purple, .pink],
-                                isSelected: selectedRole == .child
+                                isSelected: false
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -82,19 +72,13 @@ struct RoleSelectionView: View {
                         .animation(.spring(response: 0.7, dampingFraction: 0.7).delay(0.1), value: showContent)
                         
                         // Bouton Parent
-                        Button(action: {
-                            print("🟢 Parent button clicked!")
-                            selectedRole = .parent
-                            print("🟢 selectedRole set to: \(String(describing: selectedRole))")
-                            showLoginView = true
-                            print("🟢 showLoginView set to: \(showLoginView)")
-                        }) {
+                        NavigationLink(value: AuthViewModel.UserRole.parent) {
                             RoleCard(
                                 icon: "👨‍👩‍👧",
                                 title: "I'm a Parent",
                                 subtitle: "Monitor & Support",
                                 colors: [.blue, .cyan],
-                                isSelected: selectedRole == .parent
+                                isSelected: false
                             )
                         }
                         .buttonStyle(PlainButtonStyle())

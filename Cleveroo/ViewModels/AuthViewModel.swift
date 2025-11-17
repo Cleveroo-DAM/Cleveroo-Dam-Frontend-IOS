@@ -17,7 +17,7 @@ import Combine
 class AuthViewModel: ObservableObject {
     
     // MARK: - User Role Enum
-    enum UserRole {
+    enum UserRole: Hashable, Equatable {
         case child
         case parent
     }
@@ -39,6 +39,7 @@ class AuthViewModel: ObservableObject {
     @Published var isParent = false
     @Published var currentChildId: String?
     @Published var childrenList: [[String: Any]] = []
+    @Published var avatarURL: String?
     
     // MARK: - API Base URL
     private let baseURL = "http://localhost:3000/auth"
@@ -213,10 +214,6 @@ class AuthViewModel: ObservableObject {
                     if let children = json["children"] as? [[String: Any]] {
                         self.childrenList = children
                         print("✅ Fetched \(children.count) children")
-                    } else if let children = json as? [[String: Any]] {
-                        // In case the response is directly an array
-                        self.childrenList = children
-                        print("✅ Fetched \(children.count) children")
                     } else {
                         self.childrenList = []
                         print("⚠️ No children found in response")
@@ -247,6 +244,7 @@ class AuthViewModel: ObservableObject {
                     self.userProfile = json
                     self.parentEmail = json["email"] as? String ?? ""
                     self.parentPhone = json["phone"] as? String ?? ""
+                    self.avatarURL = json["avatar"] as? String
                     
                     if let child = json["child"] as? [String: Any] {
                         self.childUsername = child["username"] as? String ?? ""
@@ -257,6 +255,7 @@ class AuthViewModel: ObservableObject {
                     print("✅ Parent profile fetched successfully")
                     print("   📧 Email: \(self.parentEmail)")
                     print("   👶 Child: \(self.childUsername)")
+                    print("   🖼️ Avatar URL: \(self.avatarURL ?? "nil")")
                 } else {
                     print("❌ Failed to fetch parent profile: \(error ?? "Unknown error")")
                     self.errorMessage = error ?? "Failed to fetch profile."
@@ -279,20 +278,43 @@ class AuthViewModel: ObservableObject {
                 guard let self = self else { return }
                 
                 if success, let json = json {
-                    print("🔍 Raw JSON received: \(json)")
+                    print("🔍 Raw JSON received:")
+                    print("   All keys: \(json.keys)")
+                    print("   Full JSON: \(json)")
+                    
                     self.isParent = false
                     self.userProfile = json
+                    
+                    // Essayer différents noms possibles pour l'avatar
+                    if let avatar = json["avatar"] as? String {
+                        self.avatarURL = avatar
+                        print("   ✅ Found avatar field: \(avatar)")
+                    } else if let avatar = json["avatarURL"] as? String {
+                        self.avatarURL = avatar
+                        print("   ✅ Found avatarURL field: \(avatar)")
+                    } else if let avatar = json["profileImage"] as? String {
+                        self.avatarURL = avatar
+                        print("   ✅ Found profileImage field: \(avatar)")
+                    } else if let avatar = json["image"] as? String {
+                        self.avatarURL = avatar
+                        print("   ✅ Found image field: \(avatar)")
+                    } else if let avatar = json["photo"] as? String {
+                        self.avatarURL = avatar
+                        print("   ✅ Found photo field: \(avatar)")
+                    } else {
+                        print("   ⚠️ No avatar field found in response")
+                        self.avatarURL = nil
+                    }
                     
                     // Essayer de récupérer l'ID de plusieurs façons
                     if let id = json["_id"] as? String {
                         self.currentChildId = id
-                        print("✅ Child ID found as '_id': \(id)")
+                        print("   ✅ Child ID found as '_id': \(id)")
                     } else if let id = json["id"] as? String {
                         self.currentChildId = id
-                        print("✅ Child ID found as 'id': \(id)")
+                        print("   ✅ Child ID found as 'id': \(id)")
                     } else {
-                        print("❌ WARNING: Could not find child ID in response!")
-                        print("   Available keys: \(json.keys)")
+                        print("   ❌ WARNING: Could not find child ID in response!")
                     }
                     
                     self.childUsername = json["username"] as? String ?? ""
@@ -303,6 +325,7 @@ class AuthViewModel: ObservableObject {
                     print("   👶 Username: \(self.childUsername)")
                     print("   🆔 ID: \(self.currentChildId ?? "N/A")")
                     print("   🎂 Age: \(self.age)")
+                    print("   🖼️ Avatar URL: \(self.avatarURL ?? "nil")")
                 } else {
                     print("❌ Failed to fetch child profile: \(error ?? "Unknown error")")
                     self.errorMessage = error ?? "Failed to fetch profile."

@@ -120,29 +120,43 @@ struct CodeVerificationView: View {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: [
-            "email": email,
+        
+        let payload: [String: Any] = [
+            "email": email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
             "code": cleanedCode
-        ])
+        ]
+        
+        print("📤 Sending verification request:")
+        print("   Email: \(payload["email"] ?? "nil")")
+        print("   Code: \(payload["code"] ?? "nil")")
+        
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isLoading = false
 
-                // Vérifier le message de succès au lieu du status code
-                let msg = self.parseErrorMessage(from: data)
+                if let error = error {
+                    print("❌ Network error: \(error.localizedDescription)")
+                    self.errorMessage = "Network error: \(error.localizedDescription)"
+                    return
+                }
+                
                 let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                let responseData = data.flatMap { String(data: $0, encoding: .utf8) } ?? "No response body"
                 
                 print("🔍 Status Code: \(statusCode)")
-                print("📩 Response Message: \(msg ?? "nil")")
+                print("📥 Response Body: \(responseData)")
                 
-                // Status 201 ou 200 = succès, OU message contient "verified successfully"
-                if (200...299).contains(statusCode) || msg?.lowercased().contains("verified successfully") == true {
+                // Vérifier le message de succès au lieu du status code
+                let msg = self.parseErrorMessage(from: data)
+                
+                // Status 200-299 = succès
+                if (200...299).contains(statusCode) {
                     print("✅ Code verified successfully")
                     print("📧 Email: \(self.email)")
                     print("🔢 Code: \(cleanedCode)")
                     print("🚀 Calling onCodeVerified callback NOW")
-                    print("🎯 Executing navigation callback")
                     
                     // Désactiver le bouton définitivement après vérification réussie
                     self.isVerifying = true
@@ -153,8 +167,11 @@ struct CodeVerificationView: View {
                     print("✨ Callback executed - navigation should happen now")
                     
                 } else {
-                    self.errorMessage = msg ?? "Invalid or expired code."
-                    print("❌ Verification failed: \(msg ?? "Unknown")")
+                    // Afficher le message exact du backend
+                    let errorMsg = msg ?? "Verification failed"
+                    self.errorMessage = errorMsg
+                    print("❌ Verification failed: \(errorMsg)")
+                    print("📋 Full error response: \(responseData)")
                 }
             }
         }.resume()

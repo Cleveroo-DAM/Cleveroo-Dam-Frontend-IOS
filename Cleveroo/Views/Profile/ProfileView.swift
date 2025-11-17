@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WebKit
 
 struct ProfileView: View {
     @ObservedObject var viewModel: AuthViewModel
@@ -19,13 +20,8 @@ struct ProfileView: View {
             ScrollView {
                 VStack(spacing: 25) {
 
-                    // Logo
-                    Image("Cleveroo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 120, height: 120)
-                        .clipShape(Circle())
-                        .shadow(color: Color.white.opacity(0.8), radius: 10)
+                    // Avatar Image using AvatarImageView
+                    AvatarImageView(avatarUrl: viewModel.avatarURL, size: 120)
                         .padding(.top, 40)
 
                     // Profile Info
@@ -120,7 +116,14 @@ struct ProfileView: View {
                     }
                 }
             }
-            .onAppear { viewModel.fetchProfile() }
+            .onAppear {
+                print("🔍 ProfileView onAppear - fetching profile...")
+                print("   Current avatarURL: \(viewModel.avatarURL ?? "nil")")
+                viewModel.fetchProfile()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    print("   After fetchProfile - avatarURL: \(viewModel.avatarURL ?? "nil")")
+                }
+            }
         }
     }
 }

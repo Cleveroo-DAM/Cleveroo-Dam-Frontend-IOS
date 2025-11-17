@@ -14,7 +14,7 @@ struct MainTabView: View {
     @State private var selectedTab: Tab = .home
 
     enum Tab {
-        case home, ai, games, profile
+        case home, activities, ai, games, profile
     }
 
     var body: some View {
@@ -27,6 +27,8 @@ struct MainTabView: View {
                     switch selectedTab {
                     case .home:
                         HomeView(viewModel: viewModel)
+                    case .activities:
+                        ChildDashboardView(authVM: viewModel)
                     case .ai:
                         NavigationStack {
                             AIReportView()
@@ -61,6 +63,7 @@ struct BottomTabBar: View {
     var body: some View {
         HStack {
             tabButton(icon: "house.fill", title: "Home", tab: .home)
+            tabButton(icon: "checklist", title: "Activities", tab: .activities)
             tabButton(icon: "brain.head.profile", title: "AI", tab: .ai)
             tabButton(icon: "gamecontroller.fill", title: "Games", tab: .games)
             tabButton(icon: "person.crop.circle.fill", title: "Profile", tab: .profile)

@@ -225,7 +225,7 @@ struct GameHistoryCard: View {
                 
                 Spacer()
                 
-                StatusBadge(status: session.status)
+                SessionStatusBadge(status: session.status)
             }
             
             // Score and performance
@@ -299,8 +299,8 @@ struct GameHistoryCard: View {
     }
 }
 
-// MARK: - Status Badge Component
-struct StatusBadge: View {
+// MARK: - Session Status Badge Component
+private struct SessionStatusBadge: View {
     let status: MemoryGameSession.SessionStatus
     
     var body: some View {

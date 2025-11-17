@@ -9,13 +9,15 @@ import SwiftUI
 
 struct ParentLoginView: View {
     @ObservedObject var viewModel: AuthViewModel
+    @Environment(\.dismiss) private var dismiss
 
     @State private var email = ""
+    @State private var rememberMe = false
     @State private var animateButton = false
     @State private var showContent = false
-    @State private var rememberMe = false
     @State private var showValidationAlert = false
     @State private var validationMessage = ""
+    @State private var showForgotPasswordFlow = false
 
     var body: some View {
         ZStack {
@@ -42,24 +44,13 @@ struct ParentLoginView: View {
 
                     VStack(spacing: 20) {
                         // Email Field
-                        TextField("📧 Parent Email", text: $email)
-                            .keyboardType(.emailAddress)
+                        TextField("📧 Email Address", text: $email)
                             .textFieldStyle(ChildFieldStyle())
+                            .keyboardType(.emailAddress)
                             .autocapitalization(.none)
 
                         // Password Field
                         SecureFieldWithToggle(placeholder: "🔑 Password", text: $viewModel.password)
-
-                        // Remember Me Toggle
-                        HStack {
-                            Toggle(isOn: $rememberMe) {
-                                Text("Remember me")
-                                    .foregroundColor(.white)
-                                    .font(.subheadline)
-                            }
-                            .toggleStyle(SwitchToggleStyle(tint: .yellow))
-                        }
-                        .padding(.horizontal, 30)
 
                         if let error = viewModel.errorMessage {
                             Text(error)
@@ -68,9 +59,32 @@ struct ParentLoginView: View {
                                 .multilineTextAlignment(.center)
                         }
 
+                        // Remember Me Checkbox
+                        HStack {
+                            Button(action: { rememberMe.toggle() }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: rememberMe ? "checkmark.square.fill" : "square")
+                                        .foregroundColor(.yellow)
+                                    Text("Remember me")
+                                        .font(.footnote)
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: { showForgotPasswordFlow = true }) {
+                                Text("Forgot Password?")
+                                    .font(.footnote)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.yellow)
+                            }
+                        }
+                        .padding(.horizontal, 30)
+
                         // Login Button
                         Button(action: loginAction) {
-                            Text(viewModel.isLoading ? "Loading..." : "🔐 Login")
+                            Text(viewModel.isLoading ? "Loading..." : "🚀 Login")
                                 .fontWeight(.bold)
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -83,19 +97,12 @@ struct ParentLoginView: View {
                         }
                         .disabled(viewModel.isLoading)
 
-                        // Forgot Password Link
-                        NavigationLink(destination: ForgotPasswordFlow()) {
-                            Text("Forgot Password?")
-                                .font(.footnote)
-                                .foregroundColor(.yellow)
-                        }
-
                         // Register Link
                         HStack {
                             Text("Don't have an account?")
                                 .foregroundColor(.white.opacity(0.8))
                                 .font(.footnote)
-
+                            
                             NavigationLink(destination: RegisterParentView(viewModel: viewModel)) {
                                 Text("Register")
                                     .fontWeight(.bold)
@@ -103,9 +110,26 @@ struct ParentLoginView: View {
                                     .font(.footnote)
                             }
                         }
-                        
-                        // Back Button (navigation handled by NavigationStack)
-                        
+                        .padding(.top, 10)
+
+                        // Back to Role Selection Button
+                        Button(action: {
+                            print("🔙 Back button clicked - dismissing ParentLoginView")
+                            dismiss()
+                        }) {
+                            HStack {
+                                Image(systemName: "chevron.left")
+                                Text("Back to Role Selection")
+                            }
+                            .font(.footnote)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.yellow)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                        .padding(.top, 10)
                     }
                     .padding(.horizontal, 30)
                     .opacity(showContent ? 1 : 0)
@@ -114,14 +138,13 @@ struct ParentLoginView: View {
                 .padding(.vertical, 50)
             }
         }
-        .navigationBarHidden(true)
+        .navigationBarHidden(false)
+        .navigationBarBackButtonHidden(true)
         .onAppear {
-            // Charger l'email sauvegardé si disponible
-            if let saved = viewModel.loadSavedIdentifier() {
-                email = saved
-                rememberMe = true
-            }
             withAnimation(.easeInOut(duration: 1.0)) { showContent = true }
+        }
+        .sheet(isPresented: $showForgotPasswordFlow) {
+            ForgotPasswordFlow()
         }
         .alert("Validation Error", isPresented: $showValidationAlert) {
             Button("OK", role: .cancel) {}
@@ -138,7 +161,7 @@ struct ParentLoginView: View {
             return
         }
         
-        guard email.contains("@") else {
+        guard email.contains("@") && email.contains(".") else {
             validationMessage = "Please enter a valid email address"
             showValidationAlert = true
             return

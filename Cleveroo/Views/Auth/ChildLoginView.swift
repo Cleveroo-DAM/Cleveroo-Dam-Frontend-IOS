@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ChildLoginView: View {
     @ObservedObject var viewModel: AuthViewModel
+    @Environment(\.dismiss) private var dismiss
 
     @State private var username = ""
     @State private var animateButton = false
@@ -70,13 +71,22 @@ struct ChildLoginView: View {
                         }
                         .disabled(viewModel.isLoading)
 
-                        // Back Button
+                        // Back to Role Selection Button
                         Button(action: {
-                            // Go back will be handled by NavigationStack
+                            print("🔙 Back button clicked - dismissing ChildLoginView")
+                            dismiss()
                         }) {
-                            Text("← Back to Role Selection")
-                                .font(.footnote)
-                                .foregroundColor(.yellow)
+                            HStack {
+                                Image(systemName: "chevron.left")
+                                Text("Back to Role Selection")
+                            }
+                            .font(.footnote)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.yellow)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(8)
                         }
                         .padding(.top, 10)
                     }
@@ -87,7 +97,8 @@ struct ChildLoginView: View {
                 .padding(.vertical, 50)
             }
         }
-        .navigationBarHidden(true)
+        .navigationBarHidden(false)
+        .navigationBarBackButtonHidden(true)
         .onAppear {
             withAnimation(.easeInOut(duration: 1.0)) { showContent = true }
         }

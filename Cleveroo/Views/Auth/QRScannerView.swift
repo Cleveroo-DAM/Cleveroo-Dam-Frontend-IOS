@@ -57,6 +57,9 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
+        // Reset scan flag to allow rescanning
+        hasScanned = false
+        
         if let captureSession = captureSession, !captureSession.isRunning {
             DispatchQueue.global(qos: .userInitiated).async {
                 captureSession.startRunning()

@@ -44,6 +44,7 @@ class AuthViewModel: ObservableObject {
     // MARK: - API Base URL
     private let baseURL = "http://localhost:3000/auth"
     private let parentBaseURL = "http://localhost:3000/parent"
+    private let qrExchangeURL = "http://localhost:3000/qr/exchange"
     
     // MARK: - LOGIN
     func login(identifier: String, rememberMe: Bool = false) {
@@ -543,8 +544,7 @@ class AuthViewModel: ObservableObject {
         }
         
         isLoading = true
-        // QR exchange endpoint is at root level, not under /auth
-        let endpoint = "http://localhost:3000/qr/exchange"
+        let endpoint = qrExchangeURL
         let body: [String: Any] = ["token": token]
         
         sendRequest(urlString: endpoint, body: body) { [weak self] success, json, error in

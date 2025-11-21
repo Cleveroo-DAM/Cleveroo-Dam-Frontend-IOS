@@ -291,7 +291,7 @@ struct ChildQRCodeLoginView: View {
                 errorMessage = error ?? "Authentication failed"
                 showError = true
                 scannedToken = nil // Reset token on error
-                print("❌ QR authentication failed: \(errorMessage)")
+                print("❌ QR authentication failed")
             }
         }
     }

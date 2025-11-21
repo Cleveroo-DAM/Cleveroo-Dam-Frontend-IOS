@@ -44,6 +44,7 @@ class AuthViewModel: ObservableObject {
     // MARK: - API Base URL
     private let baseURL = "http://localhost:3000/auth"
     private let parentBaseURL = "http://localhost:3000/parent"
+    private let qrExchangeURL = "http://localhost:3000/qr/exchange"
     
     // MARK: - LOGIN
     func login(identifier: String, rememberMe: Bool = false) {
@@ -533,5 +534,40 @@ class AuthViewModel: ObservableObject {
     
     func loadSavedIdentifier() -> String? {
         UserDefaults.standard.string(forKey: "savedIdentifier")
+    }
+    
+    // MARK: - QR TOKEN EXCHANGE (for child login via QR)
+    func exchangeQrToken(_ token: String, completion: @escaping (Bool, String?) -> Void) {
+        guard !token.isEmpty else {
+            completion(false, "Token is empty")
+            return
+        }
+        
+        isLoading = true
+        let endpoint = qrExchangeURL
+        let body: [String: Any] = ["token": token]
+        
+        sendRequest(urlString: endpoint, body: body) { [weak self] success, json, error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isLoading = false
+                
+                if success, let accessToken = json?["access_token"] as? String {
+                    print("✅ QR token exchange successful, token saved")
+                    UserDefaults.standard.set(accessToken, forKey: "jwt")
+                    self.isParent = false
+                    self.isLoggedIn = true
+                    
+                    // Fetch child profile
+                    print("👶 Fetching child profile after QR login...")
+                    self.fetchChildProfile()
+                    
+                    completion(true, nil)
+                } else {
+                    print("❌ QR token exchange failed: \(error ?? "Unknown error")")
+                    completion(false, error ?? "Failed to authenticate with QR code")
+                }
+            }
+        }
     }
 }

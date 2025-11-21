@@ -16,6 +16,7 @@ struct ChildLoginView: View {
     @State private var showContent = false
     @State private var showValidationAlert = false
     @State private var validationMessage = ""
+    @State private var showQRLogin = false
 
     var body: some View {
         ZStack {
@@ -68,6 +69,44 @@ struct ChildLoginView: View {
                                 .clipShape(Capsule())
                                 .shadow(radius: 6)
                                 .scaleEffect(animateButton ? 1.05 : 1.0)
+                        }
+                        .disabled(viewModel.isLoading)
+                        
+                        // Divider
+                        HStack {
+                            Rectangle()
+                                .fill(Color.white.opacity(0.3))
+                                .frame(height: 1)
+                            Text("OR")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.7))
+                                .padding(.horizontal, 10)
+                            Rectangle()
+                                .fill(Color.white.opacity(0.3))
+                                .frame(height: 1)
+                        }
+                        .padding(.vertical, 5)
+                        
+                        // QR Login Button
+                        NavigationLink(destination: ChildQRCodeLoginView(viewModel: viewModel)) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "qrcode.viewfinder")
+                                    .font(.system(size: 20))
+                                Text("Login with QR Code")
+                                    .fontWeight(.semibold)
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.blue.opacity(0.8), Color.cyan.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(Capsule())
+                            .shadow(color: Color.blue.opacity(0.4), radius: 6)
                         }
                         .disabled(viewModel.isLoading)
 

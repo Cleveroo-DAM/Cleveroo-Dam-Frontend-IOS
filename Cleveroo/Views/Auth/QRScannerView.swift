@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import AudioToolbox
 
 struct QRScannerView: UIViewControllerRepresentable {
     var onCodeScanned: (String) -> Void
@@ -80,12 +81,8 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
     }
     
     private func setupCamera() {
-        captureSession = AVCaptureSession()
-        
-        guard let captureSession = captureSession else {
-            print("❌ Failed to create capture session")
-            return
-        }
+        let captureSession = AVCaptureSession()
+        self.captureSession = captureSession
         
         guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
             print("❌ Failed to get video capture device")

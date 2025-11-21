@@ -543,7 +543,8 @@ class AuthViewModel: ObservableObject {
         }
         
         isLoading = true
-        let endpoint = "\(baseURL)/qr/exchange"
+        // QR exchange endpoint is at root level, not under /auth
+        let endpoint = "http://localhost:3000/qr/exchange"
         let body: [String: Any] = ["token": token]
         
         sendRequest(urlString: endpoint, body: body) { [weak self] success, json, error in

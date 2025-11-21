@@ -7,7 +7,6 @@
 
 import SwiftUI
 import AVFoundation
-import AudioToolbox
 
 struct QRScannerView: UIViewControllerRepresentable {
     var onCodeScanned: (String) -> Void
@@ -142,7 +141,8 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
             hasScanned = true
             
             // Haptic feedback
-            AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
             
             delegate?.didScanCode(stringValue)
             

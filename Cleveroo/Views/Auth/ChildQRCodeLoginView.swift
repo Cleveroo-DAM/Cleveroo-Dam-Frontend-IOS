@@ -114,21 +114,19 @@ struct ChildQRCodeLoginView: View {
                         // Content card
                         VStack(spacing: 25) {
                             // Scanned token display
-                            if let token = scannedToken {
+                            if scannedToken != nil {
                                 VStack(alignment: .leading, spacing: 10) {
                                     HStack {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundColor(.green)
-                                        Text("QR Code Scanned")
+                                        Text("QR Code Successfully Scanned")
                                             .font(.headline)
                                             .foregroundColor(.white)
                                     }
                                     
-                                    Text(token.prefix(20) + "...")
+                                    Text("Ready to login")
                                         .font(.caption)
                                         .foregroundColor(.white.opacity(0.7))
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
                                 }
                                 .padding()
                                 .frame(maxWidth: .infinity, alignment: .leading)

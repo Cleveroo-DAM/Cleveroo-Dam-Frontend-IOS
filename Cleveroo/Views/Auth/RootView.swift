@@ -32,6 +32,10 @@ struct RootView: View {
                 }
             }
         }
+        .onAppear {
+            print("📱 App launched - attempting to restore session")
+            authViewModel.restoreSession()
+        }
     }
 
     // MARK: - Actions

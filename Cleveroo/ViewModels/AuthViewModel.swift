@@ -69,7 +69,15 @@ class AuthViewModel: ObservableObject {
                     UserDefaults.standard.set(token, forKey: "jwt")
                     self.isParent = isEmail
                     self.isLoggedIn = true
-                    if rememberMe { self.saveIdentifier(identifier) }
+                    
+                    // Si Remember Me est coché, sauvegarder la session
+                    if rememberMe {
+                        print("💾 Saving session with Remember Me")
+                        UserDefaults.standard.set(true, forKey: "rememberMe")
+                        UserDefaults.standard.set(identifier, forKey: "savedIdentifier")
+                        UserDefaults.standard.set(isEmail, forKey: "isParent")
+                    }
+                    self.saveIdentifier(identifier)
                     
                     // Appeler directement le bon endpoint selon le type
                     if isEmail {
@@ -350,6 +358,41 @@ class AuthViewModel: ObservableObject {
         childUsername = ""; childGender = "Boy"
         userProfile = [:]; isLoggedIn = false; isParent = false; currentChildId = nil
         UserDefaults.standard.removeObject(forKey: "jwt")
+        UserDefaults.standard.removeObject(forKey: "rememberMe")
+        UserDefaults.standard.removeObject(forKey: "savedIdentifier")
+        UserDefaults.standard.removeObject(forKey: "isParent")
+    }
+    
+    // MARK: - RESTORE SESSION (on app launch)
+    func restoreSession() {
+        print("🔄 Attempting to restore session...")
+        
+        guard UserDefaults.standard.bool(forKey: "rememberMe") else {
+            print("⚠️ Remember Me not enabled, skipping session restore")
+            return
+        }
+        
+        guard let token = UserDefaults.standard.string(forKey: "jwt") else {
+            print("⚠️ No saved token found")
+            return
+        }
+        
+        let wasParent = UserDefaults.standard.bool(forKey: "isParent")
+        
+        print("✅ Session found! Restoring as \(wasParent ? "Parent" : "Child")")
+        
+        // Restaurer la session
+        self.isParent = wasParent
+        self.isLoggedIn = true
+        
+        // Récupérer le profil
+        if wasParent {
+            print("📧 Fetching parent profile...")
+            self.fetchParentProfile()
+        } else {
+            print("👶 Fetching child profile...")
+            self.fetchChildProfile()
+        }
     }
     
     // MARK: - UPDATE PROFILE

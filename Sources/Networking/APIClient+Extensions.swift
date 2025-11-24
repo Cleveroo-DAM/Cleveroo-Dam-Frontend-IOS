@@ -114,6 +114,6 @@ extension APIClient {
     ///   - authToken: Authentication token (optional)
     public func configure(baseURL: String, authToken: String? = nil) {
         self.baseURL = baseURL
-        self.authToken = authToken
+        self.setAuthToken(authToken)
     }
 }

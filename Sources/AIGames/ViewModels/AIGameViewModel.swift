@@ -283,8 +283,9 @@ public class AIGameViewModel: ObservableObject {
         
         // Move to next level
         DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Timing.levelTransitionDuration) { [weak self] in
-            guard let self = self else { return }
-            self.currentSession?.currentLevel += 1
+            guard let self = self, var session = self.currentSession else { return }
+            session.currentLevel += 1
+            self.currentSession = session
             self.loadCurrentLevel()
         }
     }

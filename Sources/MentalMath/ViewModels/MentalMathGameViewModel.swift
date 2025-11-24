@@ -100,7 +100,8 @@ public class MentalMathGameViewModel: ObservableObject {
                 self?.isLoading = false
                 if case .failure(let error) = completion {
                     self?.error = error.localizedDescription
-                    if error.errorDescription?.contains("No more questions") == true {
+                    // Check if we've run out of questions
+                    if case .notFound = error {
                         self?.completeSession()
                     }
                 }

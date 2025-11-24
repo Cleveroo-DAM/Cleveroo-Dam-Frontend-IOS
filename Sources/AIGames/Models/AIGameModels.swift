@@ -24,7 +24,7 @@ public struct AIGame: Codable, Identifiable {
     public let createdAt: Date
     public var isActive: Bool
     
-    public enum GameType: String, Codable {
+    public enum GameType: String, Codable, CaseIterable {
         case puzzle
         case memory
         case logic
@@ -33,7 +33,7 @@ public struct AIGame: Codable, Identifiable {
         case language
     }
     
-    public enum Difficulty: String, Codable {
+    public enum Difficulty: String, Codable, CaseIterable {
         case easy
         case medium
         case hard

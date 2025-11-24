@@ -88,7 +88,7 @@ public struct AIGameListView: View {
                         }
                     )
                     
-                    ForEach([AIGame.GameType.puzzle, .memory, .logic, .creativity, .math, .language], id: \.self) { type in
+                    ForEach(AIGame.GameType.allCases, id: \.self) { type in
                         FilterChip(
                             title: type.rawValue.capitalized,
                             isSelected: selectedGameType == type,
@@ -112,7 +112,7 @@ public struct AIGameListView: View {
                         }
                     )
                     
-                    ForEach([AIGame.Difficulty.easy, .medium, .hard], id: \.self) { difficulty in
+                    ForEach(AIGame.Difficulty.allCases, id: \.self) { difficulty in
                         FilterChip(
                             title: difficulty.rawValue.capitalized,
                             isSelected: selectedDifficulty == difficulty,
@@ -292,7 +292,7 @@ private struct GenerateGameSheet: View {
             Form {
                 Section("Game Type") {
                     Picker("Type", selection: $gameType) {
-                        ForEach([AIGame.GameType.puzzle, .memory, .logic, .creativity, .math, .language], id: \.self) { type in
+                        ForEach(AIGame.GameType.allCases, id: \.self) { type in
                             Text(type.rawValue.capitalized).tag(type)
                         }
                     }

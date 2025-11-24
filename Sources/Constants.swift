@@ -37,6 +37,13 @@ public enum AppConstants {
     /// API configuration
     public enum API {
         /// Default base URL for API requests
+        /// In production, this should be configured via environment variables or build configuration
         public static let defaultBaseURL = "https://api.cleveroodam.com"
+        
+        /// Development base URL
+        public static let developmentBaseURL = "http://localhost:3000"
+        
+        /// Staging base URL
+        public static let stagingBaseURL = "https://staging-api.cleveroodam.com"
     }
 }

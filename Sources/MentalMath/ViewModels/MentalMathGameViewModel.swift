@@ -201,7 +201,7 @@ public class MentalMathGameViewModel: ObservableObject {
         gameState = .answerSubmitted
         
         // Auto-advance to next question after showing feedback
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Timing.mentalMathFeedbackDuration) { [weak self] in
             self?.loadNextQuestion()
         }
     }
@@ -238,7 +238,7 @@ public class MentalMathGameViewModel: ObservableObject {
         if !userAnswer.isEmpty {
             submitAnswer()
         } else {
-            userAnswer = "0" // Default wrong answer
+            userAnswer = "\(AppConstants.Defaults.timeoutDefaultAnswer)"
             submitAnswer()
         }
     }

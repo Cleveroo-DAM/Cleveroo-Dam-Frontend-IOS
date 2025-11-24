@@ -14,7 +14,7 @@ struct CleverooDAMApp: App {
         // Configure API client with backend URL
         // In production, this would come from configuration or environment variables
         APIClient.shared.configure(
-            baseURL: "https://api.cleveroodam.com",
+            baseURL: AppConstants.API.defaultBaseURL,
             authToken: nil // Set after user authentication
         )
     }

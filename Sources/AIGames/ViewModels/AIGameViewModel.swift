@@ -271,7 +271,7 @@ public class AIGameViewModel: ObservableObject {
         ])
         
         // Auto-advance after feedback
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Timing.aiGameFeedbackDuration) { [weak self] in
             self?.currentChallengeIndex += 1
             self?.loadCurrentChallenge()
         }
@@ -282,7 +282,7 @@ public class AIGameViewModel: ObservableObject {
         trackEvent(.levelCompleted, data: ["level": "\(currentSession?.currentLevel ?? 0)"])
         
         // Move to next level
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Timing.levelTransitionDuration) { [weak self] in
             guard let self = self else { return }
             self.currentSession?.currentLevel += 1
             self.loadCurrentLevel()

@@ -12,9 +12,10 @@ struct MainTabView: View {
     var onLogout: () -> Void
     
     @State private var selectedTab: Tab = .home
+    @State private var showCreateAssignment = false
 
     enum Tab {
-        case home, activities, /*ai*/ games, gameHistory, profile
+        case home, activities, assignments, aiGames, games, gameHistory, profile
     }
 
     var body: some View {
@@ -29,12 +30,30 @@ struct MainTabView: View {
                         HomeView(viewModel: viewModel)
                     case .activities:
                         ChildDashboardView(authVM: viewModel)
-                    //case .ai:
-                    //    NavigationStack {
-                    //        AIReportView()
-                    //    }
+                    case .assignments:
+                        NavigationStack {
+                            if viewModel.isParent {
+                                AssignmentParentDashboardView()
+                                    .environmentObject(viewModel)
+                            } else {
+                                AssignmentChildDashboardView()
+                                    .environmentObject(viewModel)
+                            }
+                        }
+                    case .aiGames:
+                        NavigationStack {
+                            if viewModel.isParent {
+                                AIGameParentDashboardView()
+                                    .environmentObject(viewModel)
+                            } else {
+                                AIGamesListView()
+                                    .environmentObject(viewModel)
+                            }
+                        }
                     case .games:
-                        MiniGamesView()
+                        NavigationStack {
+                            GamesMenuView()
+                        }
                     case .gameHistory:
                         NavigationStack {
                             GameHistoryView()
@@ -44,14 +63,58 @@ struct MainTabView: View {
                             handleLogout()
                         }
                     }
+                    
+                    // Bouton flottant pour créer un assignment (parents seulement)
+                    if viewModel.isParent {
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Button(action: {
+                                    print("🎯 Bouton Créer Assignment cliqué!")
+                                    showCreateAssignment = true
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.system(size: 20, weight: .bold))
+                                        Text("Assignment")
+                                            .font(.system(size: 15, weight: .semibold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 18)
+                                    .padding(.vertical, 14)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [Color.green, Color.teal],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .cornerRadius(30)
+                                    .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+                                }
+                                .padding(.trailing, 16)
+                                .padding(.bottom, 120) // Plus haut au-dessus de la bottom bar
+                            }
+                        }
+                        .allowsHitTesting(true)
+                        .zIndex(999) // Force au premier plan
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 // Bottom Tab Bar
-                BottomTabBar(selectedTab: $selectedTab)
+                BottomTabBar(selectedTab: $selectedTab, viewModel: viewModel, onCreateAssignment: {
+                    print("🎯 Action créer assignment déclenchée!")
+                    showCreateAssignment = true
+                })
             }
         }
         .environmentObject(viewModel)  // ✅ Propager l'AuthViewModel à toutes les vues enfants
+        .sheet(isPresented: $showCreateAssignment) {
+            CreateAssignmentView(viewModel: AssignmentParentViewModel())
+                .environmentObject(viewModel)
+        }
     }
 
     private func handleLogout() {
@@ -63,12 +126,25 @@ struct MainTabView: View {
 // MARK: - BottomTabBar
 struct BottomTabBar: View {
     @Binding var selectedTab: MainTabView.Tab
+    @ObservedObject var viewModel: AuthViewModel
+    var onCreateAssignment: (() -> Void)?
 
     var body: some View {
-        HStack {
+        HStack(spacing: 0) {
             tabButton(icon: "house.fill", title: "Home", tab: .home)
-            tabButton(icon: "checklist", title: "Activities", tab: .activities)
-            //tabButton(icon: "brain.head.profile", title: "AI", tab: .ai)
+            tabButton(icon: "checklist", title: "Tasks", tab: .activities)
+            tabButton(icon: "list.clipboard.fill", title: "Assignments", tab: .assignments)
+            
+            // Afficher le bouton AI seulement pour les parents
+            if viewModel.isParent {
+                tabButton(icon: "brain.head.profile", title: "AI", tab: .aiGames)
+            }
+            
+            // Bouton spécial pour créer assignment (parents seulement)
+            if viewModel.isParent {
+                createAssignmentButton()
+            }
+            
             tabButton(icon: "gamecontroller.fill", title: "Games", tab: .games)
             tabButton(icon: "clock.fill", title: "History", tab: .gameHistory)
             tabButton(icon: "person.crop.circle.fill", title: "Profile", tab: .profile)
@@ -96,6 +172,29 @@ struct BottomTabBar: View {
                 Text(title)
                     .font(.caption2)
                     .foregroundColor(selectedTab == tab ? .white : .white.opacity(0.6))
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+    
+    private func createAssignmentButton() -> some View {
+        Button(action: {
+            print("🎯 BOUTON CRÉER ASSIGNMENT CLIQUÉ DANS LA BOTTOM BAR!")
+            onCreateAssignment?()
+        }) {
+            VStack(spacing: 4) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(.green)
+                    .background(
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: 28, height: 28)
+                    )
+                Text("Créer")
+                    .font(.caption2)
+                    .foregroundColor(.green)
+                    .fontWeight(.bold)
             }
             .frame(maxWidth: .infinity)
         }

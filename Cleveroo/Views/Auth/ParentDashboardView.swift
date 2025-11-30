@@ -120,6 +120,7 @@ struct ParentDashboardView: View {
             }
         }
     }
+
 }
 
 // MARK: - Child Card View

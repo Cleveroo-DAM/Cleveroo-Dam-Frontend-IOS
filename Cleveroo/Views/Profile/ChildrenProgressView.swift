@@ -51,8 +51,7 @@ struct ChildrenProgressView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 15) {
-                            ForEach(viewModel.childrenList.indices, id: \.self) { index in
-                                let child = viewModel.childrenList[index]
+                            ForEach(Array(viewModel.childrenList.enumerated()), id: \.offset) { index, child in
                                 Group {
                                     if let childId = child["_id"] as? String,
                                        let childName = child["username"] as? String {
@@ -63,11 +62,11 @@ struct ChildrenProgressView: View {
                                                 authVM: viewModel
                                             )
                                         ) {
-                                            ChildProgressCard(child: child)
+                                            ChildProgressCardProfile(child: child)
                                         }
                                     } else {
                                         NavigationLink(destination: ChildDetailView(child: child)) {
-                                            ChildProgressCard(child: child)
+                                            ChildProgressCardProfile(child: child)
                                         }
                                     }
                                 }
@@ -92,8 +91,8 @@ struct ChildrenProgressView: View {
     }
 }
 
-// MARK: - Child Progress Card
-struct ChildProgressCard: View {
+// MARK: - Child Progress Card Profile
+struct ChildProgressCardProfile: View {
     let child: [String: Any]
     
     var body: some View {

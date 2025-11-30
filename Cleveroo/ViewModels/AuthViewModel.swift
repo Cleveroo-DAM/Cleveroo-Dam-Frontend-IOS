@@ -46,6 +46,11 @@ class AuthViewModel: ObservableObject {
     private let parentBaseURL = "\(APIConfig.baseURL)/parent"
     private let qrExchangeURL = "\(APIConfig.qrBaseURL)/exchange"
     
+    // MARK: - Computed Properties
+    var currentUserToken: String? {
+        return UserDefaults.standard.string(forKey: "jwt")
+    }
+    
     // MARK: - LOGIN
     func login(identifier: String, rememberMe: Bool = false) {
         guard !identifier.isEmpty, !password.isEmpty else {
@@ -660,4 +665,3 @@ class AuthViewModel: ObservableObject {
         }
     }
 }
-

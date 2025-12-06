@@ -115,9 +115,40 @@ struct ReportsListView: View {
 // MARK: - Report Card View
 struct ReportCardView: View {
     let report: Report
+    @State private var imageLoadFailed = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Cover Image - Afficher seulement si disponible ET se charge avec succès
+            if !imageLoadFailed, let coverImageUrl = report.coverImage, let url = URL(string: coverImageUrl) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 120)
+                            .cornerRadius(12)
+                            .clipped()
+                    case .failure:
+                        // Masquer silencieusement l'image en cas d'erreur
+                        EmptyView()
+                            .onAppear {
+                                imageLoadFailed = true
+                            }
+                    case .empty:
+                        // Placeholder discret pendant le chargement
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(height: 120)
+                            .cornerRadius(12)
+                            .clipped()
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+            }
+            
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {

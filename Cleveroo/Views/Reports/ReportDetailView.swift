@@ -11,10 +11,16 @@ import Charts
 struct ReportDetailView: View {
     let report: Report
     let token: String
+    @State private var coverImageFailed = false
     
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
+                // Cover Image - Afficher en premier si disponible ET chargement réussi
+                if !coverImageFailed, let coverImageUrl = report.coverImage, let url = URL(string: coverImageUrl) {
+                    coverImageSection(url: url)
+                }
+                
                 // Header Card
                 headerCard
                 
@@ -381,6 +387,32 @@ struct ReportDetailView: View {
         .background(Color.white)
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+    }
+    
+    // MARK: - Cover Image Section
+    private func coverImageSection(url: URL) -> some View {
+        AsyncImage(url: url) { phase in
+            switch phase {
+            case .success(let image):
+                image
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 200)
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+            case .failure:
+                // Masquer complètement en cas d'erreur
+                EmptyView()
+            case .empty:
+                // Placeholder discret pendant le chargement
+                Rectangle()
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(height: 200)
+                    .cornerRadius(12)
+            @unknown default:
+                EmptyView()
+            }
+        }
     }
 }
 
